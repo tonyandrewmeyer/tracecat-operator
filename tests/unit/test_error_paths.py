@@ -135,7 +135,6 @@ class TestDbUriSecretPath:
         assert harness.charm._db_uri is None
 
 
-
 class TestHandlersAndLayer:
     def test_on_temporal_changed(self, harness: Harness) -> None:
         _set_relations(harness)
