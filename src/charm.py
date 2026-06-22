@@ -212,8 +212,8 @@ class TracecatK8sCharm(ops.CharmBase):
             missing.append("postgresql")
         if not self._redis_url:
             missing.append("redis")
-        if not self._temporal_url:
-            missing.append("temporal")
+        # temporal is not mandatory for the API to start; worker/executor
+        # remain idle until the temporal relation (or override) is present.
         if missing:
             self.unit.status = ops.WaitingStatus(f"waiting for relations: {', '.join(missing)}")
             return False
@@ -276,13 +276,15 @@ class TracecatK8sCharm(ops.CharmBase):
             "TRACECAT__DISABLE_NSJAIL": str(cfg.get("disable-nsjail", True)).lower(),
             "TRACECAT__EXECUTOR_CLIENT_TIMEOUT": str(cfg.get("executor-client-timeout", 300)),
             "TRACECAT__EXECUTOR_WORKER_POOL_SIZE": str(cfg.get("executor-worker-pool-size", 5)),
+            # Result externalization requires S3; auto-disable when the
+            # s3-credentials relation is absent so the API can start.
             "TRACECAT__RESULT_EXTERNALIZATION_ENABLED": str(
-                cfg.get("result-externalization-enabled", True)
+                cfg.get("result-externalization-enabled", True) and bool(self._s3_info)
             ).lower(),
             "TRACECAT__RESULT_EXTERNALIZATION_THRESHOLD_BYTES": str(
                 cfg.get("result-externalization-threshold-bytes", 131072)
             ),
-            "TRACECAT__COLLECTION_MANIFESTS_ENABLED": "true",
+            "TRACECAT__COLLECTION_MANIFESTS_ENABLED": str(bool(self._s3_info)).lower(),
             "TRACECAT__WORKFLOW_ARTIFACT_RETENTION_DAYS": str(
                 cfg.get("workflow-artifact-retention-days", 30)
             ),
