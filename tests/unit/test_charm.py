@@ -22,6 +22,8 @@ def harness() -> Harness:
     h.set_leader(True)
     h.begin()
     return h
+
+
 def _patch_container(charm_obj: charm.TracecatK8sCharm) -> MagicMock:
     """Replace the tracecat container with a mock that records calls."""
     mock = MagicMock()
@@ -84,11 +86,13 @@ class TestConfigValidation:
         assert "oidc" in str(harness.model.unit.status).lower()
 
     def test_oidc_with_issuer_passes(self, harness: Harness) -> None:
-        harness.update_config({
-            "auth-types": "basic,oidc",
-            "oidc-issuer": "https://idp.example.com",
-            "oidc-client-id": "tracecat",
-        })
+        harness.update_config(
+            {
+                "auth-types": "basic,oidc",
+                "oidc-issuer": "https://idp.example.com",
+                "oidc-client-id": "tracecat",
+            }
+        )
         assert harness.charm._validate_config() is True
 
 
@@ -96,9 +100,23 @@ class TestEnv:
     def test_env_has_required_keys(self, harness: Harness) -> None:
         harness.charm._ensure_auto_secrets()
         with (
-            patch.object(type(harness.charm), "_db_uri", new_callable=lambda: property(lambda self: "postgresql+psycopg://u:p@h:5432/tracecat")),
-            patch.object(type(harness.charm), "_redis_url", new_callable=lambda: property(lambda self: "redis://r:6379")),
-            patch.object(type(harness.charm), "_temporal_url", new_callable=lambda: property(lambda self: "t:7233")),
+            patch.object(
+                type(harness.charm),
+                "_db_uri",
+                new_callable=lambda: property(
+                    lambda self: "postgresql+psycopg://u:p@h:5432/tracecat"
+                ),
+            ),
+            patch.object(
+                type(harness.charm),
+                "_redis_url",
+                new_callable=lambda: property(lambda self: "redis://r:6379"),
+            ),
+            patch.object(
+                type(harness.charm),
+                "_temporal_url",
+                new_callable=lambda: property(lambda self: "t:7233"),
+            ),
         ):
             env = harness.charm._tracecat_env()
         assert env["TRACECAT__APP_ENV"] == "production"
@@ -151,8 +169,10 @@ class TestStartupSequence:
         harness.add_relation_unit(tp, "temporal-k8s/0")
         harness.update_relation_data(tp, "temporal-k8s", {"host": "temporal-host", "port": "7233"})
         mock = _patch_container(harness.charm)
-        with patch("charm.tracecat.health_check", return_value=True), \
-             patch("charm.tracecat.get_version", return_value="1.0.0-beta.49"):
+        with (
+            patch("charm.tracecat.health_check", return_value=True),
+            patch("charm.tracecat.get_version", return_value="1.0.0-beta.49"),
+        ):
             harness.charm._start_core_services()
 
         # migrations + api + worker + executor started.
@@ -165,9 +185,23 @@ class TestStartupSequence:
     def test_migration_failure_blocks(self, harness: Harness) -> None:
         harness.charm._ensure_auto_secrets()
         with (
-            patch.object(type(harness.charm), "_db_uri", new_callable=lambda: property(lambda self: "postgresql+psycopg://u:p@h:5432/tracecat")),
-            patch.object(type(harness.charm), "_redis_url", new_callable=lambda: property(lambda self: "redis://r:6379")),
-            patch.object(type(harness.charm), "_temporal_url", new_callable=lambda: property(lambda self: "t:7233")),
+            patch.object(
+                type(harness.charm),
+                "_db_uri",
+                new_callable=lambda: property(
+                    lambda self: "postgresql+psycopg://u:p@h:5432/tracecat"
+                ),
+            ),
+            patch.object(
+                type(harness.charm),
+                "_redis_url",
+                new_callable=lambda: property(lambda self: "redis://r:6379"),
+            ),
+            patch.object(
+                type(harness.charm),
+                "_temporal_url",
+                new_callable=lambda: property(lambda self: "t:7233"),
+            ),
         ):
             mock = _patch_container(harness.charm)
             mock.exec.side_effect = ops.pebble.Error("migrations failed")
@@ -190,7 +224,9 @@ class TestActions:
         event = MagicMock()
         event.params = {"pool-size": 10}
         with (
-            patch.object(type(harness.charm), "_db_uri", new_callable=lambda: property(lambda self: None)),
+            patch.object(
+                type(harness.charm), "_db_uri", new_callable=lambda: property(lambda self: None)
+            ),
         ):
             harness.charm._on_scale_workers(event)
         event.set_results.assert_called_once()
@@ -202,16 +238,22 @@ class TestActions:
         _patch_container(harness.charm)
         event = MagicMock()
         harness.charm._on_rotate_signing_secret(event)
-        new = harness.charm._get_secret(charm.SECRET_SIGNING_SECRET).get_content(refresh=True)["value"]
+        new = harness.charm._get_secret(charm.SECRET_SIGNING_SECRET).get_content(refresh=True)[
+            "value"
+        ]
         assert new != old
         assert "invalid" in event.set_results.call_args[0][0]["warning"].lower()
+
     def test_rotate_service_key_updates_secret(self, harness: Harness) -> None:
         harness.charm._ensure_auto_secrets()
         old = harness.charm._secret_value(charm.SECRET_SERVICE_KEY)
         _patch_container(harness.charm)
         event = MagicMock()
         harness.charm._on_rotate_service_key(event)
-        assert harness.charm._get_secret(charm.SECRET_SERVICE_KEY).get_content(refresh=True)["value"] != old
+        assert (
+            harness.charm._get_secret(charm.SECRET_SERVICE_KEY).get_content(refresh=True)["value"]
+            != old
+        )
 
     def test_backup_without_s3_fails(self, harness: Harness) -> None:
         event = MagicMock()
@@ -259,9 +301,23 @@ class TestLayer:
     def test_migrations_run_via_exec(self, harness: Harness) -> None:
         harness.charm._ensure_auto_secrets()
         with (
-            patch.object(type(harness.charm), "_db_uri", new_callable=lambda: property(lambda self: "postgresql+psycopg://u:p@h:5432/tracecat")),
-            patch.object(type(harness.charm), "_redis_url", new_callable=lambda: property(lambda self: "redis://r:6379")),
-            patch.object(type(harness.charm), "_temporal_url", new_callable=lambda: property(lambda self: "t:7233")),
+            patch.object(
+                type(harness.charm),
+                "_db_uri",
+                new_callable=lambda: property(
+                    lambda self: "postgresql+psycopg://u:p@h:5432/tracecat"
+                ),
+            ),
+            patch.object(
+                type(harness.charm),
+                "_redis_url",
+                new_callable=lambda: property(lambda self: "redis://r:6379"),
+            ),
+            patch.object(
+                type(harness.charm),
+                "_temporal_url",
+                new_callable=lambda: property(lambda self: "t:7233"),
+            ),
         ):
             mock = _patch_container(harness.charm)
             with patch("charm.tracecat.health_check", return_value=True):

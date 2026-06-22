@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0] - 2026-06-22
+
+### Added
+
+- First production-ready release of the `tracecat-k8s` Juju charm for Tracecat
+  (SOAR platform) on Kubernetes.
+- Two-container workload: `tracecat` (API, Temporal workers, executor) and
+  `tracecat-ui` (Next.js frontend).
+- Relations: `postgresql`, `redis`, `temporal-host-info`, `ingress`,
+  `s3-credentials`, `certificates`, `logging`, `metrics-endpoint`,
+  `grafana-dashboard`, `tracing`.
+- Day-2 actions: `create-superadmin`, `backup`, `restore`,
+  `rotate-encryption-key`, `rotate-service-key`, `rotate-signing-secret`,
+  `scale-workers`, `export-audit-log`, `upgrade-schema`.
+- Juju secrets for all credentials.
+- COS-Lite observability with shipped Grafana dashboard and alert rules.
+- mkdocs-material documentation site.
+
+[0.1.0]: https://github.com/tonyandrewmeyer/tracecat-operator/releases/tag/0.1.0
+
 ## [Unreleased]
 
 ### Added

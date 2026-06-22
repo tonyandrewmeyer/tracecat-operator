@@ -44,9 +44,7 @@ def health_check(container: Any, host: str = "localhost", port: int = API_PORT) 
     return isinstance(data, dict) and data.get("status") == "ok"
 
 
-def _api_get(
-    container: Any, path: str, host: str = "localhost", port: int = API_PORT
-) -> Any:
+def _api_get(container: Any, path: str, host: str = "localhost", port: int = API_PORT) -> Any:
     """Perform a GET against the in-pod API and return parsed JSON.
 
     Uses urllib so no extra dependency is required in the charm runtime. When
@@ -67,9 +65,7 @@ def _api_get(
         return body
 
 
-def make_db_uri(
-    *, host: str, port: str | int, dbname: str, user: str, password: str
-) -> str:
+def make_db_uri(*, host: str, port: str | int, dbname: str, user: str, password: str) -> str:
     """Build a psycopg-style Tracecat DB URI from relation fields.
 
     Tracecat expects ``postgresql+psycopg://user:password@host:port/dbname``.

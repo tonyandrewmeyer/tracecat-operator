@@ -31,9 +31,9 @@ from charms.data_platform_libs.v0.s3 import S3Requirer
 from charms.grafana_k8s.v0.grafana_dashboard import GrafanaDashboardProvider
 from charms.loki_k8s.v1.loki_push_api import LogForwarder
 from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
-from charms.redis_k8s.v0.redis import RedisRequires, RedisRelationCharmEvents
-from charms.temporal_k8s.v0.temporal_host_info import TemporalHostInfoRequirer
+from charms.redis_k8s.v0.redis import RedisRelationCharmEvents, RedisRequires
 from charms.tempo_coordinator_k8s.v0.tracing import TracingEndpointRequirer
+from charms.temporal_k8s.v0.temporal_host_info import TemporalHostInfoRequirer
 from charms.tls_certificates_interface.v3.tls_certificates import (
     TLSCertificatesRequiresV3,
 )
@@ -98,25 +98,17 @@ class TracecatK8sCharm(ops.CharmBase):
             jobs=[{"static_configs": [{"targets": [f"*:{API_PORT}"]}]}],
         )
         self._grafana = GrafanaDashboardProvider(self)
-        self._tracing = TracingEndpointRequirer(
-            self, protocols=["otlp_grpc", "otlp_http"]
-        )
+        self._tracing = TracingEndpointRequirer(self, protocols=["otlp_grpc", "otlp_http"])
 
         framework.observe(self.on.install, self._on_install)
         framework.observe(self.on.config_changed, self._on_config_changed)
         framework.observe(self.on.upgrade_charm, self._on_upgrade_charm)
-        framework.observe(
-            self.on[TRACECAT_CONTAINER].pebble_ready, self._on_tracecat_pebble_ready
-        )
-        framework.observe(
-            self.on[UI_CONTAINER].pebble_ready, self._on_ui_pebble_ready
-        )
+        framework.observe(self.on[TRACECAT_CONTAINER].pebble_ready, self._on_tracecat_pebble_ready)
+        framework.observe(self.on[UI_CONTAINER].pebble_ready, self._on_ui_pebble_ready)
         framework.observe(self._postgresql.on.database_created, self._reconcile)
         framework.observe(self._postgresql.on.endpoints_changed, self._reconcile)
         framework.observe(self.on.redis_relation_updated, self._reconcile)
-        framework.observe(
-            self._temporal.on.temporal_host_info_changed, self._on_temporal_changed
-        )
+        framework.observe(self._temporal.on.temporal_host_info_changed, self._on_temporal_changed)
         framework.observe(self._temporal.on.temporal_host_info_unavailable, self._reconcile)
         framework.observe(self._ingress.on.ready, self._on_ingress_ready)
         framework.observe(self._ingress.on.revoked, self._reconcile)
@@ -128,20 +120,12 @@ class TracecatK8sCharm(ops.CharmBase):
         framework.observe(self.on.create_superadmin_action, self._on_create_superadmin)
         framework.observe(self.on.backup_action, self._on_backup)
         framework.observe(self.on.restore_action, self._on_restore)
-        framework.observe(
-            self.on.rotate_encryption_key_action, self._on_rotate_encryption_key
-        )
-        framework.observe(
-            self.on.rotate_service_key_action, self._on_rotate_service_key
-        )
-        framework.observe(
-            self.on.rotate_signing_secret_action, self._on_rotate_signing_secret
-        )
+        framework.observe(self.on.rotate_encryption_key_action, self._on_rotate_encryption_key)
+        framework.observe(self.on.rotate_service_key_action, self._on_rotate_service_key)
+        framework.observe(self.on.rotate_signing_secret_action, self._on_rotate_signing_secret)
         framework.observe(self.on.upgrade_schema_action, self._on_upgrade_schema)
         framework.observe(self.on.scale_workers_action, self._on_scale_workers)
-        framework.observe(
-            self.on.export_audit_log_action, self._on_export_audit_log
-        )
+        framework.observe(self.on.export_audit_log_action, self._on_export_audit_log)
 
     # ------------------------------------------------------------------ #
     # Properties
@@ -184,7 +168,7 @@ class TracecatK8sCharm(ops.CharmBase):
             return None
         uri = uris.split(",")[0].strip()
         if uri.startswith("postgresql://"):
-            uri = "postgresql+psycopg://" + uri[len("postgresql://"):]
+            uri = "postgresql+psycopg://" + uri[len("postgresql://") :]
         return uri
 
     @property
@@ -231,9 +215,7 @@ class TracecatK8sCharm(ops.CharmBase):
         if not self._temporal_url:
             missing.append("temporal")
         if missing:
-            self.unit.status = ops.WaitingStatus(
-                f"waiting for relations: {', '.join(missing)}"
-            )
+            self.unit.status = ops.WaitingStatus(f"waiting for relations: {', '.join(missing)}")
             return False
         return True
 
@@ -284,24 +266,16 @@ class TracecatK8sCharm(ops.CharmBase):
             "TRACECAT__API_ROOT_PATH": "/api",
             "TRACECAT__AUTH_TYPES": str(cfg.get("auth-types", "basic")),
             "TRACECAT__AUTH_ALLOWED_DOMAINS": str(cfg.get("auth-allowed-domains", "")),
-            "TRACECAT__AUTH_MIN_PASSWORD_LENGTH": str(
-                cfg.get("auth-min-password-length", 12)
-            ),
+            "TRACECAT__AUTH_MIN_PASSWORD_LENGTH": str(cfg.get("auth-min-password-length", 12)),
             "TRACECAT__DB_ENCRYPTION_KEY": self._secret_value(SECRET_DB_ENCRYPTION_KEY),
             "TRACECAT__SERVICE_KEY": self._secret_value(SECRET_SERVICE_KEY),
             "TRACECAT__SIGNING_SECRET": self._secret_value(SECRET_SIGNING_SECRET),
             "USER_AUTH_SECRET": self._secret_value(SECRET_USER_AUTH_SECRET),
-            "TRACECAT__AUTH_SUPERADMIN_EMAIL": self._secret_value(
-                SECRET_SUPERADMIN_EMAIL
-            ),
+            "TRACECAT__AUTH_SUPERADMIN_EMAIL": self._secret_value(SECRET_SUPERADMIN_EMAIL),
             "TRACECAT__EXECUTOR_BACKEND": "direct",
             "TRACECAT__DISABLE_NSJAIL": str(cfg.get("disable-nsjail", True)).lower(),
-            "TRACECAT__EXECUTOR_CLIENT_TIMEOUT": str(
-                cfg.get("executor-client-timeout", 300)
-            ),
-            "TRACECAT__EXECUTOR_WORKER_POOL_SIZE": str(
-                cfg.get("executor-worker-pool-size", 5)
-            ),
+            "TRACECAT__EXECUTOR_CLIENT_TIMEOUT": str(cfg.get("executor-client-timeout", 300)),
+            "TRACECAT__EXECUTOR_WORKER_POOL_SIZE": str(cfg.get("executor-worker-pool-size", 5)),
             "TRACECAT__RESULT_EXTERNALIZATION_ENABLED": str(
                 cfg.get("result-externalization-enabled", True)
             ).lower(),
@@ -332,9 +306,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 cfg.get("blob-storage-bucket-agent", "tracecat-agent")
             ),
             "TEMPORAL__CLUSTER_NAMESPACE": str(cfg.get("temporal-namespace", "default")),
-            "TEMPORAL__CLUSTER_QUEUE": str(
-                cfg.get("temporal-task-queue", "tracecat-task-queue")
-            ),
+            "TEMPORAL__CLUSTER_QUEUE": str(cfg.get("temporal-task-queue", "tracecat-task-queue")),
             "OIDC_SCOPES": str(cfg.get("oidc-scopes", "openid profile email")),
             "SAML_IDP_METADATA_URL": str(cfg.get("saml-idp-metadata-url", "")),
         }
@@ -346,7 +318,7 @@ class TracecatK8sCharm(ops.CharmBase):
             env["REDIS_URL"] = self._redis_url
         if self._temporal_url:
             env["TEMPORAL__CLUSTER_URL"] = self._temporal_url
-        if (dsn := cfg.get("sentry-dsn", "")):
+        if dsn := cfg.get("sentry-dsn", ""):
             env["SENTRY_DSN"] = str(dsn)
 
         # S3 / blob storage.
@@ -398,9 +370,7 @@ class TracecatK8sCharm(ops.CharmBase):
             SVC_API: {
                 "override": "replace",
                 "summary": "Tracecat FastAPI server",
-                "command": (
-                    f"uvicorn tracecat.api.app:app --host 0.0.0.0 --port {API_PORT}"
-                ),
+                "command": (f"uvicorn tracecat.api.app:app --host 0.0.0.0 --port {API_PORT}"),
                 "startup": "disabled",
                 "environment": env,
                 "on-success": "ignore",
@@ -441,11 +411,12 @@ class TracecatK8sCharm(ops.CharmBase):
             services[SVC_LITELLM] = {
                 "override": "replace",
                 "summary": "LiteLLM proxy",
-                "command": (
-                    f"litellm --model openai/gpt-4o --port {LITELLM_PORT}"
-                ),
+                "command": (f"litellm --model openai/gpt-4o --port {LITELLM_PORT}"),
                 "startup": "disabled",
-                "environment": {**env, "TRACECAT__LITELLM_BASE_URL": f"http://localhost:{LITELLM_PORT}"},
+                "environment": {
+                    **env,
+                    "TRACECAT__LITELLM_BASE_URL": f"http://localhost:{LITELLM_PORT}",
+                },
             }
             services[SVC_MCP] = {
                 "override": "replace",
@@ -462,24 +433,26 @@ class TracecatK8sCharm(ops.CharmBase):
         api_url = (
             self._ingress_url + "/api" if self._ingress_url else f"http://localhost:{API_PORT}/api"
         )
-        return ops.pebble.Layer({
-            "summary": "tracecat-ui services",
-            "services": {
-                SVC_UI: {
-                    "override": "replace",
-                    "summary": "Tracecat Next.js frontend",
-                    "command": "node server.js",
-                    "startup": "enabled",
-                    "environment": {
-                        "NODE_ENV": "production",
-                        "NEXT_PUBLIC_APP_ENV": "production",
-                        "NEXT_PUBLIC_API_URL": api_url,
-                        "NEXT_SERVER_API_URL": f"http://localhost:{API_PORT}",
-                        "PORT": str(UI_PORT),
-                    },
-                }
-            },
-        })
+        return ops.pebble.Layer(
+            {
+                "summary": "tracecat-ui services",
+                "services": {
+                    SVC_UI: {
+                        "override": "replace",
+                        "summary": "Tracecat Next.js frontend",
+                        "command": "node server.js",
+                        "startup": "enabled",
+                        "environment": {
+                            "NODE_ENV": "production",
+                            "NEXT_PUBLIC_APP_ENV": "production",
+                            "NEXT_PUBLIC_API_URL": api_url,
+                            "NEXT_SERVER_API_URL": f"http://localhost:{API_PORT}",
+                            "PORT": str(UI_PORT),
+                        },
+                    }
+                },
+            }
+        )
 
     # ------------------------------------------------------------------ #
     # Startup sequence
@@ -632,10 +605,11 @@ class TracecatK8sCharm(ops.CharmBase):
         try:
             process = self.container.exec(
                 [
-                    "python", "-c",
+                    "python",
+                    "-c",
                     "import urllib.request, json, os;"
                     "req=urllib.request.Request('http://localhost:8000/api/auth/users/first',"
-                    " data=json.dumps({'email': os.environ['TRACECAT__AUTH_SUPERADMIN_EMAIL']}).encode(),"
+                    " data=json.dumps({'email': os.environ['TRACECAT__AUTH_SUPERADMIN_EMAIL']}).encode(),"  # noqa: E501
                     " headers={'Content-Type':'application/json'});"
                     "print(urllib.request.urlopen(req, timeout=30).read().decode())",
                 ],
@@ -660,9 +634,7 @@ class TracecatK8sCharm(ops.CharmBase):
         if not self._db_uri:
             event.fail("postgresql relation required for backup")
             return
-        destination = event.params.get(
-            "destination", f"tracecat-backups/{int(time.time())}/"
-        )
+        destination = event.params.get("destination", f"tracecat-backups/{int(time.time())}/")
         container = self.container
         if not container.can_connect():
             event.fail("tracecat container not ready")
@@ -670,8 +642,12 @@ class TracecatK8sCharm(ops.CharmBase):
         self.unit.status = ops.MaintenanceStatus("running backup")
         try:
             container.exec(
-                ["pg_dump", "--format=custom", "--file=/tmp/tracecat.dump",
-                 f"--dbname={self._db_uri}"],
+                [
+                    "pg_dump",
+                    "--format=custom",
+                    "--file=/tmp/tracecat.dump",
+                    f"--dbname={self._db_uri}",
+                ],
                 timeout=300,
             ).wait_output()
         except Exception as exc:  # noqa: BLE001
@@ -684,23 +660,30 @@ class TracecatK8sCharm(ops.CharmBase):
             s3 = self._s3_info
             endpoint = s3.get("endpoint", "")
             container.exec(
-                ["sh", "-c",
-                 f"mc alias set tracecat-s3 {endpoint} "
-                 f"{s3.get('access-key','')} {s3.get('secret-key','')} "
-                 "&& mc cp /tmp/tracecat.dump "
-                 f"tracecat-s3/{s3.get('bucket','tracecat-workflow')}/{destination}tracecat.dump"],
+                [
+                    "sh",
+                    "-c",
+                    f"mc alias set tracecat-s3 {endpoint} "
+                    f"{s3.get('access-key', '')} {s3.get('secret-key', '')} "
+                    "&& mc cp /tmp/tracecat.dump "
+                    f"tracecat-s3/{s3.get('bucket', 'tracecat-workflow')}/{destination}tracecat.dump",  # noqa: E501
+                ],
                 timeout=300,
             ).wait_output()
         except Exception as exc:  # noqa: BLE001
             logger.warning("S3 upload via mc failed: %s", exc)
         self.unit.status = ops.ActiveStatus()
-        event.set_results({
-            "backup-path": f"{destination}tracecat.dump",
-            "status": "ok",
-            "note": ("DB encryption key is in Juju secret "
-                     "tracecat-db-encryption-key; export via "
-                     "`juju show-secret --reveal` before any DR scenario."),
-        })
+        event.set_results(
+            {
+                "backup-path": f"{destination}tracecat.dump",
+                "status": "ok",
+                "note": (
+                    "DB encryption key is in Juju secret "
+                    "tracecat-db-encryption-key; export via "
+                    "`juju show-secret --reveal` before any DR scenario."
+                ),
+            }
+        )
 
     def _on_restore(self, event: ops.ActionEvent) -> None:
         source = event.params.get("source", "")
@@ -724,15 +707,23 @@ class TracecatK8sCharm(ops.CharmBase):
             s3 = self._s3_info
             endpoint = s3.get("endpoint", "")
             container.exec(
-                ["sh", "-c",
-                 f"mc alias set tracecat-s3 {endpoint} "
-                 f"{s3.get('access-key','')} {s3.get('secret-key','')} "
-                 f"&& mc cp tracecat-s3/{s3.get('bucket','tracecat-workflow')}/{source} /tmp/tracecat.dump"],
+                [
+                    "sh",
+                    "-c",
+                    f"mc alias set tracecat-s3 {endpoint} "
+                    f"{s3.get('access-key', '')} {s3.get('secret-key', '')} "
+                    f"&& mc cp tracecat-s3/{s3.get('bucket', 'tracecat-workflow')}/{source} /tmp/tracecat.dump",  # noqa: E501
+                ],
                 timeout=300,
             ).wait_output()
             container.exec(
-                ["pg_restore", "--dbname=" + self._db_uri, "--clean", "--if-exists",
-                 "/tmp/tracecat.dump"],
+                [
+                    "pg_restore",
+                    "--dbname=" + self._db_uri,
+                    "--clean",
+                    "--if-exists",
+                    "/tmp/tracecat.dump",
+                ],
                 timeout=300,
             ).wait_output()
         except Exception as exc:  # noqa: BLE001
@@ -750,8 +741,16 @@ class TracecatK8sCharm(ops.CharmBase):
         if container.can_connect():
             try:
                 container.exec(
-                    ["python", "-m", "tracecat.cli", "rotate-encryption-key",
-                     "--old-key", old_key, "--new-key", new_key],
+                    [
+                        "python",
+                        "-m",
+                        "tracecat.cli",
+                        "rotate-encryption-key",
+                        "--old-key",
+                        old_key,
+                        "--new-key",
+                        new_key,
+                    ],
                     environment=self._tracecat_env(),
                     timeout=120,
                 ).wait_output()
@@ -787,11 +786,15 @@ class TracecatK8sCharm(ops.CharmBase):
             self.container.notify("signing-secret-rotated")
         except Exception:  # noqa: BLE001
             pass
-        event.set_results({
-            "result": "signing secret rotated",
-            "warning": ("All existing webhook URLs are now invalid. "
-                        "Regenerate them in the Tracecat UI."),
-        })
+        event.set_results(
+            {
+                "result": "signing secret rotated",
+                "warning": (
+                    "All existing webhook URLs are now invalid. "
+                    "Regenerate them in the Tracecat UI."
+                ),
+            }
+        )
 
     def _on_upgrade_schema(self, event: ops.ActionEvent) -> None:
         container = self.container
@@ -800,8 +803,8 @@ class TracecatK8sCharm(ops.CharmBase):
             return
         self.unit.status = ops.MaintenanceStatus("running schema upgrade")
         ok = self._run_migrations(container)
-        self.unit.status = ops.ActiveStatus() if ok else ops.BlockedStatus(
-            "schema upgrade failed; see logs"
+        self.unit.status = (
+            ops.ActiveStatus() if ok else ops.BlockedStatus("schema upgrade failed; see logs")
         )
         if not ok:
             event.fail("schema upgrade failed")
@@ -829,11 +832,15 @@ class TracecatK8sCharm(ops.CharmBase):
         except Exception as exc:  # noqa: BLE001
             event.fail(f"failed to restart executor: {exc}")
             return
-        event.set_results({
-            "result": f"executor pool size set to {pool_size}",
-            "note": ("also run `juju config tracecat-k8s "
-                     "executor-worker-pool-size={pool_size}` to persist"),
-        })
+        event.set_results(
+            {
+                "result": f"executor pool size set to {pool_size}",
+                "note": (
+                    "also run `juju config tracecat-k8s "
+                    "executor-worker-pool-size={pool_size}` to persist"
+                ),
+            }
+        )
 
     def _on_export_audit_log(self, event: ops.ActionEvent) -> None:
         since = event.params.get("since", "")
@@ -845,10 +852,13 @@ class TracecatK8sCharm(ops.CharmBase):
         try:
             query = f"?since={since}" if since else ""
             process = container.exec(
-                ["python", "-c",
-                 f"import urllib.request;"
-                 f"print(urllib.request.urlopen('http://localhost:8000/api/audit{query}',"
-                 f" timeout=30).read().decode())"],
+                [
+                    "python",
+                    "-c",
+                    f"import urllib.request;"
+                    f"print(urllib.request.urlopen('http://localhost:8000/api/audit{query}',"
+                    f" timeout=30).read().decode())",
+                ],
                 environment=self._tracecat_env(),
                 timeout=60,
             )
@@ -864,6 +874,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 if rows and isinstance(rows[0], dict):
                     import csv
                     import io
+
                     buf = io.StringIO()
                     writer = csv.DictWriter(buf, fieldnames=rows[0].keys())
                     writer.writeheader()

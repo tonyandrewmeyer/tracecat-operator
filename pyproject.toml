@@ -19,19 +19,16 @@ dependencies = [
 ]
 
 [dependency-groups]
-# Dependencies of linting and static type checks
 lint = [
     "ruff>=0.4",
     "codespell>=2.3",
     "pyright>=1.1.350",
 ]
-# Dependencies of unit tests
 unit = [
     "coverage[toml]>=7.4",
     "ops[testing]>=3.7",
     "pytest>=8.0",
 ]
-# Dependencies of integration tests
 integration = [
     "jubilant>=0.6",
     "pytest>=8.0",
@@ -72,8 +69,7 @@ ignore = [
     "D408",
     "D409",
     "D413",
-    "ANN101",
-    "ANN102",
+    "ANN401",
 ]
 
 [tool.ruff.lint.per-file-ignores]

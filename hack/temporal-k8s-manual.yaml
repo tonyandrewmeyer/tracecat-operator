@@ -1,0 +1,67 @@
+# Fallback Temporal deployment for environments where the temporal-k8s charm
+# cannot be deployed. Deploys temporalio/auto-setup:1.27.1 as a single pod.
+#
+# After applying, set the charm config:
+#   juju config tracecat-k8s temporal-host-override=temporal.default.svc:7233
+#
+# Prefer the temporal-k8s charm + temporal-host-info relation; this manifest is
+# a last resort documented in docs/day2-ops.md.
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: temporal
+  labels:
+    app: temporal
+spec:
+  ports:
+    - name: grpc
+      port: 7233
+      targetPort: 7233
+    - name: http
+      port: 8233
+      targetPort: 8233
+  selector:
+    app: temporal
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: temporal
+  labels:
+    app: temporal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: temporal
+  template:
+    metadata:
+      labels:
+        app: temporal
+    spec:
+      containers:
+        - name: temporal
+          image: temporalio/auto-setup:1.27.1
+          ports:
+            - containerPort: 7233
+              name: grpc
+            - containerPort: 8233
+              name: http
+          env:
+            - name: DB
+              value: postgresql
+            - name: DBPORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: temporal
+            - name: POSTGRES_PWD
+              value: temporal
+            - name: POSTGRES_SEEDS
+              value: temporal-db.default.svc
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8233
+            initialDelaySeconds: 15
+            periodSeconds: 10
