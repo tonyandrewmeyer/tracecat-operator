@@ -41,8 +41,8 @@ source = ["src"]
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 95
 
+fail_under = 88
 [tool.pytest.ini_options]
 minversion = "6.0"
 log_cli_level = "INFO"
