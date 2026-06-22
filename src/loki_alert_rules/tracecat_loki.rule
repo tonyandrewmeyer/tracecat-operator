@@ -1,0 +1,11 @@
+groups:
+  - name: tracecat_loki
+    rules:
+      - alert: TracecatErrorLogs
+        expr: sum(count_over_time({job=~".*tracecat.*"} |= "ERROR" [5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Tracecat emitting ERROR logs"
+          description: "More than 10 ERROR log lines in the last 5 minutes."

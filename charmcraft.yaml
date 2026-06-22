@@ -1,0 +1,253 @@
+# This file configures Charmcraft.
+# See https://documentation.ubuntu.com/charmcraft/stable/reference/files/charmcraft-yaml-file/
+type: charm
+name: tracecat-k8s
+title: Tracecat
+summary: Juju charm for Tracecat — open-source SOAR platform
+description: |
+  Charmed Tracecat deploys and manages Tracecat, an open-source security
+  orchestration, automation, and response platform with durable workflow
+  execution via Temporal. Suitable for production use on Canonical Kubernetes
+  or MicroK8s.
+
+links:
+  documentation: https://tonyandrewmeyer.github.io/tracecat-operator/
+  issues: https://github.com/tonyandrewmeyer/tracecat-operator/issues
+  source: https://github.com/tonyandrewmeyer/tracecat-operator
+  website: https://docs.tracecat.com
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+  arm64:
+
+assumes:
+  - juju >= 3.6
+  - k8s-api
+
+parts:
+  charm:
+    plugin: uv
+    source: .
+    build-snaps:
+      - astral-uv
+
+
+containers:
+  tracecat:
+    resource: tracecat-image
+    mounts:
+      - storage: sandbox-cache
+        location: /var/lib/tracecat/sandbox-cache
+  tracecat-ui:
+    resource: tracecat-ui-image
+
+resources:
+  tracecat-image:
+    type: oci-image
+    description: Tracecat API server, workers, and executor
+    upstream-source: ghcr.io/tracecathq/tracecat:1.0.0-beta.49
+  tracecat-ui-image:
+    type: oci-image
+    description: Tracecat Next.js frontend
+    upstream-source: ghcr.io/tracecathq/tracecat-ui:1.0.0-beta.49
+
+storage:
+  sandbox-cache:
+    type: filesystem
+    minimum-size: 2G
+
+requires:
+  postgresql:
+    interface: postgresql_client
+    limit: 1
+  temporal-host-info:
+    interface: temporal-host-info
+    limit: 1
+  ingress:
+    interface: ingress
+    limit: 1
+  redis:
+    interface: redis
+    limit: 1
+  s3-credentials:
+    interface: s3
+    limit: 1
+  certificates:
+    interface: tls-certificates
+    limit: 1
+  logging:
+    interface: loki_push_api
+  tracing:
+    interface: tracing
+    limit: 1
+
+provides:
+  metrics-endpoint:
+    interface: prometheus_scrape
+  grafana-dashboard:
+    interface: grafana_dashboard
+
+config:
+  options:
+    auth-types:
+      description: |
+        Comma-separated list of enabled auth types: `basic`, `oidc`, `saml`.
+      default: "basic"
+      type: string
+    oidc-issuer:
+      description: |
+        OIDC issuer URL. Required when `oidc` is in `auth-types`.
+      default: ""
+      type: string
+    oidc-client-id:
+      description: |
+        OIDC client ID (public, non-sensitive).
+      default: ""
+      type: string
+    oidc-scopes:
+      description: OIDC scopes (space-separated).
+      default: "openid profile email"
+      type: string
+    saml-idp-metadata-url:
+      description: SAML IdP metadata URL.
+      default: ""
+      type: string
+    auth-allowed-domains:
+      description: |
+        Comma-separated domains allowed to authenticate (empty = all).
+      default: ""
+      type: string
+    auth-min-password-length:
+      description: Minimum password length for basic auth.
+      default: 12
+      type: int
+    log-level:
+      description: |
+        Workload log level. One of: DEBUG, INFO, WARNING, ERROR.
+      default: "INFO"
+      type: string
+    workflow-artifact-retention-days:
+      description: Days before workflow artifacts are purged.
+      default: 30
+      type: int
+    executor-worker-pool-size:
+      description: Executor concurrent worker count.
+      default: 5
+      type: int
+    executor-client-timeout:
+      description: Executor HTTP client timeout in seconds.
+      default: 300
+      type: int
+    result-externalization-enabled:
+      description: |
+        Store workflow results in S3. Requires the s3-credentials relation.
+      default: true
+      type: boolean
+    result-externalization-threshold-bytes:
+      description: Results larger than this (bytes) go to S3.
+      default: 131072
+      type: int
+    disable-nsjail:
+      description: |
+        Disable the nsjail sandbox for the executor. Setting false requires a
+        privileged pod.
+      default: true
+      type: boolean
+    enable-agent-features:
+      description: |
+        Enable the agent-worker, agent-executor, and litellm Pebble services.
+      default: false
+      type: boolean
+    multi-tenant:
+      description: Enable enterprise multi-tenancy.
+      default: false
+      type: boolean
+    sentry-dsn:
+      description: |
+        Sentry DSN for workload error reporting (non-sensitive endpoint URL).
+      default: ""
+      type: string
+    temporal-namespace:
+      description: Temporal namespace for tracecat workflows.
+      default: "default"
+      type: string
+    temporal-task-queue:
+      description: Temporal task queue name.
+      default: "tracecat-task-queue"
+      type: string
+    temporal-host-override:
+      description: |
+        Manual Temporal host:port override. Used as a fallback when the
+        temporal relation is absent.
+      default: ""
+      type: string
+    blob-storage-bucket-workflow:
+      description: S3 bucket name for workflow artifacts.
+      default: "tracecat-workflow"
+      type: string
+    blob-storage-bucket-attachments:
+      description: S3 bucket name for attachments.
+      default: "tracecat-attachments"
+      type: string
+    blob-storage-bucket-registry:
+      description: S3 bucket name for the action registry.
+      default: "tracecat-registry"
+      type: string
+    blob-storage-bucket-agent:
+      description: S3 bucket name for agent data.
+      default: "tracecat-agent"
+      type: string
+    context-compression-enabled:
+      description: Enable context compression.
+      default: false
+      type: boolean
+    context-compression-threshold-kb:
+      description: Context compression threshold in KB.
+      default: 16
+      type: int
+
+actions:
+  create-superadmin:
+    description: Bootstrap the initial superadmin workspace.
+  backup:
+    description: Trigger a PostgreSQL pg_dump and S3 artifact snapshot.
+    params:
+      destination:
+        type: string
+        description: S3 path prefix for the backup output.
+  restore:
+    description: Restore from a backup snapshot.
+    params:
+      source:
+        type: string
+        description: S3 path prefix of the backup to restore from.
+  rotate-encryption-key:
+    description: |
+      Rotate the DB encryption key. All stored integration credentials are
+      re-encrypted with the new key. Service is briefly read-only during
+      rotation. The new key is stored in the Juju secret automatically.
+  rotate-service-key:
+    description: Rotate the service-to-service authentication key.
+  rotate-signing-secret:
+    description: |
+      Rotate the webhook signing secret. All existing webhook URLs become
+      invalid immediately; regenerate them after rotation.
+  upgrade-schema:
+    description: Run Alembic migrations manually (normally automatic on charm upgrade).
+  scale-workers:
+    description: Adjust executor worker pool size without a charm upgrade.
+    params:
+      pool-size:
+        type: integer
+        description: New worker pool size.
+  export-audit-log:
+    description: Export audit log entries to a file in the action results.
+    params:
+      since:
+        type: string
+        description: ISO-8601 timestamp; only entries after this time are exported.
+      format:
+        type: string
+        enum: [json, csv]
+        default: json

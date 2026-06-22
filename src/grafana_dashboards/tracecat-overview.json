@@ -1,0 +1,62 @@
+{
+  "title": "Tracecat Overview",
+  "uid": "tracecat-overview",
+  "schemaVersion": 39,
+  "version": 1,
+  "timezone": "browser",
+  "refresh": "30s",
+  "tags": ["tracecat", "soar"],
+  "time": {"from": "now-6h", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "title": "Workflow executions per minute",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(tracecat_workflow_executions_total[1m]))", "legendFormat": "exec/min"}
+      ],
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "title": "API request rate",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(http_requests_total[1m]))", "legendFormat": "req/s"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 6, "y": 0}
+    },
+    {
+      "id": 3,
+      "title": "API error rate",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m]))", "legendFormat": "5xx/s"}
+      ],
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+    },
+    {
+      "id": 4,
+      "title": "Executor queue depth",
+      "type": "timeseries",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "tracecat_executor_queue_depth", "legendFormat": "depth"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+    },
+    {
+      "id": 5,
+      "title": "Active case count",
+      "type": "stat",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "targets": [
+        {"expr": "tracecat_active_cases", "legendFormat": "cases"}
+      ],
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8}
+    }
+  ]
+}
