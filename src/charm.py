@@ -374,15 +374,17 @@ class TracecatK8sCharm(ops.CharmBase):
                 "summary": "Tracecat FastAPI server",
                 "command": (f"uvicorn tracecat.api.app:app --host 0.0.0.0 --port {API_PORT}"),
                 "startup": "disabled",
+                "working-dir": "/app",
                 "environment": env,
                 "on-success": "ignore",
-                "on-failure": "shutdown",
+                "on-failure": "restart",
             },
             SVC_WORKER: {
                 "override": "replace",
                 "summary": "Temporal workflow worker",
                 "command": "python -m tracecat.dsl.worker",
                 "startup": "disabled",
+                "working-dir": "/app",
                 "environment": env,
             },
             SVC_EXECUTOR: {
@@ -390,6 +392,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 "summary": "Temporal activity executor",
                 "command": "python -m tracecat.executor.worker",
                 "startup": "disabled",
+                "working-dir": "/app",
                 "environment": env,
             },
         }
@@ -400,12 +403,14 @@ class TracecatK8sCharm(ops.CharmBase):
                 "override": "replace",
                 "summary": "Temporal worker for AI agent tasks",
                 "command": "python -m tracecat.agents.worker",
+                "working-dir": "/app",
                 "startup": "disabled",
                 "environment": env,
             }
             services[SVC_AGENT_EXECUTOR] = {
                 "override": "replace",
                 "summary": "Temporal activity executor for AI agents",
+                "working-dir": "/app",
                 "command": "python -m tracecat.agents.executor",
                 "startup": "disabled",
                 "environment": env,
@@ -415,6 +420,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 "summary": "LiteLLM proxy",
                 "command": (f"litellm --model openai/gpt-4o --port {LITELLM_PORT}"),
                 "startup": "disabled",
+                "working-dir": "/app",
                 "environment": {
                     **env,
                     "TRACECAT__LITELLM_BASE_URL": f"http://localhost:{LITELLM_PORT}",
@@ -424,6 +430,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 "override": "replace",
                 "summary": "Model Context Protocol server",
                 "command": "python -m tracecat.mcp",
+                "working-dir": "/app",
                 "startup": "disabled",
                 "environment": env,
             }
@@ -472,6 +479,7 @@ class TracecatK8sCharm(ops.CharmBase):
             process = container.exec(
                 ["python", "-m", "alembic", "upgrade", "head"],
                 environment=env,
+                working_dir="/app",
                 timeout=300,
             )
             process.wait_output()
