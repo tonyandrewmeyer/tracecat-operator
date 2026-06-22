@@ -1,0 +1,54 @@
+site_name: tracecat-operator
+site_url: https://tonyandrewmeyer.github.io/tracecat-operator/
+site_description: Juju charm for Tracecat — open-source SOAR platform
+repo_url: https://github.com/tonyandrewmeyer/tracecat-operator
+repo_name: tonyandrewmeyer/tracecat-operator
+edit_uri: edit/main/docs/
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep orange
+      accent: amber
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep orange
+      accent: amber
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - toc.follow
+    - content.code.copy
+    - content.action.edit
+  icon:
+    repo: fontawesome/brands/github
+
+nav:
+  - Home: index.md
+  - Quick start: quickstart.md
+  - Configuration: configuration.md
+  - Day-2 operations: day2-ops.md
+  - Relations: relations.md
+  - Observability: observability.md
+  - Contributing: contributing.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+  - attr_list
+  - md_in_html
