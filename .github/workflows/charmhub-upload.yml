@@ -4,19 +4,23 @@ on:
   push:
     tags: ['*']
 
+permissions:
+  contents: read
+
 jobs:
   upload:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
       - run: sudo snap install charmcraft --classic
       - run: charmcraft pack
-      - uses: canonical/charmcraft-actions/auth@v3
-        with:
-          credentials: ${{ secrets.CHARMHUB_TOKEN }}
-      - uses: canonical/charmcraft-actions/upload@v3
-        with:
-          charm-name: tracecat-k8s
-          # track: 1.0/stable  # uncomment to publish; left commented to
-          #                     # upload-only (stays in unpublished state).
+      # Upload only: the revision stays unpublished until it is released to a
+      # channel manually (or by uncommenting the `charmcraft release` below).
+      - name: Upload charm to Charmhub
+        env:
+          CHARMCRAFT_AUTH: ${{ secrets.CHARMHUB_TOKEN }}
+        run: |
+          charmcraft upload tracecat-k8s_*.charm
+          # charmcraft release tracecat-k8s --revision "$REVISION" --channel 1.0/stable
