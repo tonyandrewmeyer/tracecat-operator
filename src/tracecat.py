@@ -27,7 +27,7 @@ def get_version(container: Any) -> str | None:
     """Get the running version of the workload from the API."""
     try:
         data = _api_get(container, "/health")
-    except Exception:  # noqa: BLE001
+    except Exception:
         logger.debug("could not retrieve workload version", exc_info=True)
         return None
     if isinstance(data, dict):
@@ -39,7 +39,7 @@ def health_check(container: Any, host: str = "localhost", port: int = API_PORT) 
     """Return True if the API health endpoint responds with status ok."""
     try:
         data = _api_get(container, HEALTH_PATH, host=host, port=port)
-    except Exception:  # noqa: BLE001
+    except Exception:
         return False
     return isinstance(data, dict) and data.get("status") == "ok"
 
@@ -55,7 +55,7 @@ def _api_get(container: Any, path: str, host: str = "localhost", port: int = API
     # When we have a real Pebble container we could use container.exec, but
     # urllib is simpler and works in the charm process which shares the pod
     # network on K8s.
-    with urllib.request.urlopen(url, timeout=10) as resp:  # noqa: S310
+    with urllib.request.urlopen(url, timeout=10) as resp:
         body = resp.read().decode()
     if not body:
         return None
