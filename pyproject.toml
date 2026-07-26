@@ -23,6 +23,7 @@ lint = [
     "ruff>=0.4",
     "codespell>=2.3",
     "pyright>=1.1.350",
+    "zizmor>=1.28.0",
 ]
 unit = [
     "coverage[toml]>=7.4",
