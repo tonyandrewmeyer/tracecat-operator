@@ -194,7 +194,7 @@ class TracecatK8sCharm(ops.CharmBase):
     def _ingress_url(self) -> str | None:
         try:
             return self._ingress.url
-        except Exception:  # noqa: BLE001
+        except Exception:
             return None
 
     def _get_secret(self, label: str) -> ops.Secret | None:
@@ -347,7 +347,7 @@ class TracecatK8sCharm(ops.CharmBase):
             if otlp:
                 env["OTEL_EXPORTER_OTLP_ENDPOINT"] = otlp
                 env["OTEL_TRACES_EXPORTER"] = "otlp"
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.debug("tracing endpoint not available", exc_info=True)
 
         # Public URLs from ingress.
@@ -487,7 +487,7 @@ class TracecatK8sCharm(ops.CharmBase):
         except ops.pebble.Error as exc:
             logger.error("migrations failed: %s", exc)
             return False
-        except Exception:  # noqa: BLE001
+        except Exception:
             logger.exception("unexpected error running migrations")
             return False
 
@@ -628,12 +628,12 @@ class TracecatK8sCharm(ops.CharmBase):
             )
             out, _ = process.wait_output()
             logger.info("create-superadmin output: %s", out)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             event.fail(f"create-superadmin failed: {exc}")
             return
         try:
             self.container.notify("superadmin-created")
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         event.set_results({"result": "superadmin created", "email": email})
 
@@ -660,7 +660,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 ],
                 timeout=300,
             ).wait_output()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.unit.status = ops.ActiveStatus()
             event.fail(f"pg_dump failed: {exc}")
             return
@@ -680,7 +680,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 ],
                 timeout=300,
             ).wait_output()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             logger.warning("S3 upload via mc failed: %s", exc)
         self.unit.status = ops.ActiveStatus()
         event.set_results(
@@ -711,7 +711,7 @@ class TracecatK8sCharm(ops.CharmBase):
         for svc in (SVC_API, SVC_WORKER, SVC_EXECUTOR):
             try:
                 container.stop(svc)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 pass
         try:
             s3 = self._s3_info
@@ -736,7 +736,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 ],
                 timeout=300,
             ).wait_output()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             self.unit.status = ops.BlockedStatus(f"restore failed: {exc}")
             event.fail(f"restore failed: {exc}")
             return
@@ -764,13 +764,13 @@ class TracecatK8sCharm(ops.CharmBase):
                     environment=self._tracecat_env(),
                     timeout=120,
                 ).wait_output()
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 logger.warning("in-place re-encryption failed: %s", exc)
         self._set_secret(SECRET_DB_ENCRYPTION_KEY, new_key)
         if container.can_connect():
             try:
                 container.restart(SVC_API)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 self._start_core_services()
         event.set_results({"rotated-at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())})
 
@@ -780,7 +780,7 @@ class TracecatK8sCharm(ops.CharmBase):
         if self.container.can_connect():
             try:
                 self.container.restart(SVC_API, SVC_WORKER, SVC_EXECUTOR)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 self._start_core_services()
         event.set_results({"result": "service key rotated"})
 
@@ -790,11 +790,11 @@ class TracecatK8sCharm(ops.CharmBase):
         if self.container.can_connect():
             try:
                 self.container.restart(SVC_API)
-            except Exception:  # noqa: BLE001
+            except Exception:
                 self._start_core_services()
         try:
             self.container.notify("signing-secret-rotated")
-        except Exception:  # noqa: BLE001
+        except Exception:
             pass
         event.set_results(
             {
@@ -839,7 +839,7 @@ class TracecatK8sCharm(ops.CharmBase):
         container.add_layer("tracecat", layer, combine=True)
         try:
             container.restart(SVC_EXECUTOR)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             event.fail(f"failed to restart executor: {exc}")
             return
         event.set_results(
@@ -873,7 +873,7 @@ class TracecatK8sCharm(ops.CharmBase):
                 timeout=60,
             )
             out, _ = process.wait_output()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             event.fail(f"audit log export failed: {exc}")
             return
         content = out.decode() if isinstance(out, bytes) else str(out)
@@ -890,7 +890,7 @@ class TracecatK8sCharm(ops.CharmBase):
                     writer.writeheader()
                     writer.writerows(rows)
                     content = buf.getvalue()
-            except Exception:  # noqa: BLE001
+            except Exception:
                 logger.debug("csv conversion failed", exc_info=True)
         event.set_results({"log": content, "format": fmt})
 

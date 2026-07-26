@@ -11,7 +11,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from pathlib import Path
 
@@ -29,6 +28,7 @@ TABLE_END = "## Secrets"
 
 
 def load_config() -> list[tuple[str, str, str, str]]:
+    """Read the charm config options from charmcraft.yaml as table rows."""
     data = yaml.safe_load(CHARMCRAFT.read_text())
     options = data.get("config", {}).get("options", {})
     rows = []
@@ -43,17 +43,19 @@ def load_config() -> list[tuple[str, str, str, str]]:
 
 
 def render_table(rows: list[tuple[str, str, str, str]]) -> str:
+    """Render the config rows as a Markdown table."""
     lines = [
         "| Key | Type | Default | Description |",
         "|---|---|---|---|",
     ]
     for key, typ, default, desc in rows:
-        default = default.replace("|", "\\|") if default else "`""`"
+        default = default.replace("|", "\\|") if default else "``"
         lines.append(f"| `{key}` | {typ} | `{default}` | {desc} |")
     return "\n".join(lines)
 
 
 def main() -> int:
+    """Check the README config table matches charmcraft.yaml, or regenerate it."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true", help="regenerate the table")
     args = parser.parse_args()
